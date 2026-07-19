@@ -1,0 +1,62 @@
+name: Auto Python Deobfuscator
+
+on:
+  push:
+    branches:
+      - main # Jalankan otomatis setiap ada push ke branch main
+  workflow_dispatch: # Memungkinkan kamu menjalankan manual dari menu Actions
+
+jobs:
+  deobfuscate-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Ambil file dari repositori
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Siapkan lingkungan Python
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # 3. Jalankan skrip pembongkar (Skrip AST/Python milikmu)
+    - name: Run Deobfuscator Script
+      run: |
+        # Buat skrip python pembongkar secara dinamis di sini
+        cat << 'EOF' > run_deobf.py
+        import ast
+        import os
+
+        target_file = "file_terkunci.py" # Sesuaikan dengan nama file targetmu
+        output_file = "deobf_clean.py"
+
+        if not os.path.exists(target_file):
+            print(f"File {target_file} tidak ditemukan!")
+            exit(1)
+
+        with open(target_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+
+        try:
+            parsed = ast.parse(source)
+            # --- MASUKKAN LOGIKA EKSTRAKSI AST KAMU DI SINI ---
+            # Contoh sederhana menulis ulang kode
+            with open(output_file, 'w', encoding='utf-8') as out:
+                out.write("# Hasil Deobfuscate\n" + ast.unparse(parsed))
+            print("Proses pemecahan selesai.")
+        except Exception as e:
+            print(f"Gagal memproses AST: {e}")
+        EOF
+        
+        # Eksekusi skrip pembongkar
+        python run_deobf.py
+
+    # 4. Unggah hasilnya sebagai Artifact agar bisa kamu download langsung
+    - name: Upload Clean Code Artifact
+      uses: actions/artifacts@v4
+      with:
+        name: clean-python-code
+        path: deobf_clean.py
+
