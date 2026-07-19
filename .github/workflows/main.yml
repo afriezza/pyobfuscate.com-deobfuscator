@@ -17,9 +17,8 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10' # Menggunakan Python 3.10 sebagai basis standar
+        python-version: '3.10'
 
-    # Install library untuk decompile bytecode marshal jika berhasil diekstrak
     - name: Install Decompiler Tools
       run: |
         pip install uncompyle6 xdis
@@ -29,8 +28,6 @@ jobs:
         cat << 'EOF' > run_deobf.py
         import ast
         import os
-        import marshal
-        import dis
         import sys
 
         target_file = "shoxa_gen_fix.py"
@@ -46,20 +43,15 @@ jobs:
             source = f.read()
 
         try:
-            # Langkah alternatif: Coba bersihkan kode dari fungsi pembungkus (exec/eval)
-            # dan ambil string biner penyusunnya secara paksa tanpa mengeksekusi marshal langsung
             print("Menganalisis string biner obfuscated...")
             
-            # Kita cari pola regex manual atau bypass via modifikasi string
-             modified_source = source.replace('marshal.loads', 'print')
+            # Indentasi baris ini sudah diperbaiki (sejajar 12 spasi)
+            modified_source = source.replace('marshal.loads', 'print')
             
-            # Kita tulis ulang skrip agar dia mencetak isi objek marshal-nya saja ke file log
             with open("dump_bytes.txt", "w") as d:
                 d.write(source)
                 
             print("Mencoba ekstraksi struktur kode biner...")
-            # Jika crash di marshal, kita paksa bypass dengan membaca bytecode via disassembler
-            # Kita simpan source asli apa adanya untuk diperiksa manual strukturnya
             with open(output_file, 'w', encoding='utf-8') as out:
                 out.write("# Gagal bypass otomatis karena perbedaan versi marshal.\n")
                 out.write("# Berikut isi kode mentah pembungkus yang terbaca:\n\n")
