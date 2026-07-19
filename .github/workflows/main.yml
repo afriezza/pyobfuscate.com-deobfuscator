@@ -1,28 +1,88 @@
-    # 3. Jalankan skrip pembongkar
+name: Auto Python Deobfuscator
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deobfuscate-job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    # Langkah ini akan membongkar layer enkripsi secara dinamis
     - name: Run Deobfuscator Script
       run: |
         cat << 'EOF' > run_deobf.py
         import ast
         import os
+        import base64
+        import zlib
+        import lzma
 
-        # Nama file sudah diganti dan bersih dari spasi/tanda kurung
-        target_file = "shoxa_gen_fix.py" 
+        target_file = "shoxa_gen_fix.py"
         output_file = "deobf_clean.py"
 
         if not os.path.exists(target_file):
-            print(f"File {target_file} tidak ditemukan!")
+            print(f"Error: File {target_file} tidak ditemukan di repositori!")
             exit(1)
 
         with open(target_file, 'r', encoding='utf-8') as f:
             source = f.read()
 
+        print("Memulai proses ekstraksi kode asli...")
+        
+        # Mencoba membongkar pola eval/exec yang membungkus kode
         try:
             parsed = ast.parse(source)
-            with open(output_file, 'w', encoding='utf-8') as out:
-                out.write("# Hasil Deobfuscate\n" + ast.unparse(parsed))
-            print("Proses pemecahan selesai.")
+            extracted_code = ""
+
+            for node in parsed.body:
+                # Cari pola fungsi eval atau exec
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
+                    if isinstance(node.value.func, ast.Name) and node.value.func.id in ['exec', 'eval']:
+                        # Ambil argumen di dalam fungsi tersebut
+                        arg = node.value.args[0]
+                        # Eksekusi aman isi string/bytes-nya (bukan menjalankan kodenya)
+                        raw_data = eval(ast.unparse(arg))
+                        
+                        if isinstance(raw_data, bytes):
+                            extracted_code = raw_data.decode('utf-8')
+                        else:
+                            extracted_code = str(raw_data)
+                        break
+            
+            # Jika polanya tidak masuk ke perulangan di atas, gunakan fallback membaca string langsung
+            if not extracted_code:
+                # Mencoba mengeksekusi ekspresi paling akhir yang menghasilkan string kode asli
+                extracted_code = str(eval(source.replace('exec', 'str').replace('eval', 'str')))
+
+            if extracted_code:
+                with open(output_file, 'w', encoding='utf-8') as out:
+                    out.write("# === HASIL DEOBFUSCATE ASLI ===\n\n" + extracted_code)
+                print("Sukses! Kode asli berhasil diekstrak.")
+            else:
+                print("Gagal mengekstrak struktur kode. Pola tidak dikenali.")
+                exit(1)
+
         except Exception as e:
-            print(f"Gagal memproses AST: {e}")
+            print(f"Terjadi kesalahan saat memproses file: {e}")
+            exit(1)
         EOF
         
         python run_deobf.py
+
+    - name: Upload Clean Code Artifact
+      uses: actions/artifacts@v4
+      with:
+        name: clean-python-code
+        path: deobf_clean.py
