@@ -29,7 +29,7 @@ jobs:
         import ast
         import os
 
-        target_file = "file_terkunci.py" # Sesuaikan dengan nama file targetmu
+        target_file = "shoxa_gen (1).py" # Sesuaikan dengan nama file targetmu
         output_file = "deobf_clean.py"
 
         if not os.path.exists(target_file):
