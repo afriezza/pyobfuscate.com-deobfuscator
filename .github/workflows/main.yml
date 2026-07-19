@@ -1,3 +1,17 @@
+name: Manual Workflow
+
+on:
+  workflow_dispatch: # Baris ini WAJIB ada supaya tombolnya muncul!
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a script
+        run: echo "Halo dunia!"
+
 import zlib
 import marshal
 import dis
